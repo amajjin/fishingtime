@@ -1,0 +1,6 @@
+const assert=require('node:assert/strict');const w=require('./dist/weather.js');
+for(const [speed,label] of [[0,'Light'],[14.9,'Light'],[15,'Moderate'],[29.9,'Moderate'],[30,'Strong'],[80,'Strong'],[null,'No data']])assert.equal(w.wind(speed).label,label);
+for(const [code,mm,label] of [[0,0,'Clear'],[3,0,'Clear'],[51,.1,'Drizzle'],[53,.3,'Drizzle'],[61,.5,'Rain'],[80,1,'Rain'],[73,1,'Snow'],[66,1,'Rain'],[95,1,'Rain'],[null,null,'No data']])assert.equal(w.rain(code,mm).label,label);
+assert.ok(w.rain(3,0).detail.includes('Overcast'));
+const now=Date.now(),start=Math.floor(now/3600000)*3600000;const h={time:[start/1000,(start+3600000)/1000],precipitation:[0,.3],weather_code:[3,51],wind_speed_10m:[14.9,30],wind_gusts_10m:[20,45]};global.localStorage={getItem:()=>null,setItem:()=>{}};global.fetch=async()=>({ok:true,json:async()=>({hourly:h})});
+(async()=>{await w.load();assert.equal(w.status,'ready');assert.equal(w.get(start+3599999).wind.label,'Light');assert.equal(w.get(start+3600000).rain.label,'Drizzle');assert.equal(w.get(start-1),null);assert.equal(w.get(start+7200000),null);global.fetch=async()=>{throw Error('offline')};await w.load(true);assert.equal(w.status,'error');assert.equal(w.get(start),null);console.log('PASS: three wind thresholds, clear/cloudy/drizzle/rain/snow, missing values, hourly boundaries and network failure.');})();
